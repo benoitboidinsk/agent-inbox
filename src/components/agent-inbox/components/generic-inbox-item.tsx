@@ -9,6 +9,8 @@ import { constructOpenInStudioURL } from "../utils";
 import { Button } from "@/components/ui/button";
 import NextLink from "next/link";
 import { useThreadsContext } from "../contexts/ThreadContext";
+import { useQueryParams } from "../hooks/use-query-params";
+import { VIEW_STATE_THREAD_QUERY_PARAM } from "../constants";
 
 interface GenericInboxItemProps<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -51,10 +53,18 @@ export function GenericInboxItem<
     "MM/dd h:mm a"
   );
 
+  const { updateQueryParams } = useQueryParams();
+
   return (
     <div
+      onClick={() =>
+        updateQueryParams(
+          VIEW_STATE_THREAD_QUERY_PARAM,
+          threadData.thread.thread_id
+        )
+      }
       className={cn(
-        "grid grid-cols-12 w-full p-7 items-center",
+        "grid grid-cols-12 w-full p-7 items-center cursor-pointer hover:bg-gray-50/90 transition-colors ease-in-out",
         !isLast && "border-b-[1px] border-gray-200"
       )}
     >

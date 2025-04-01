@@ -1,6 +1,7 @@
 import { Thread } from "@langchain/langgraph-sdk";
 import { StateView } from "./components/state-view";
 import { ThreadActionsView } from "./components/thread-actions-view";
+import { DummyThreadActionsView } from "./components/dummy-thread-actions-view";
 import { useThreadsContext } from "./contexts/ThreadContext";
 import { HumanInterrupt, ThreadData } from "./types";
 import React from "react";
@@ -58,14 +59,15 @@ export function ThreadView<
     }
   };
 
-  if (
-    !threadData ||
-    threadData.status !== "interrupted" ||
-    !threadData.interrupts ||
-    threadData.interrupts.length === 0
-  ) {
+  if (!threadData) {
     return null;
   }
+
+  // Check if this is an interrupted thread with interrupts
+  const isInterruptedThread = 
+    threadData.status === "interrupted" && 
+    threadData.interrupts && 
+    threadData.interrupts.length > 0;
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-full">
@@ -75,19 +77,28 @@ export function ThreadView<
           showSidePanel ? "lg:min-w-1/2 lg:max-w-2xl w-full" : "w-full"
         )}
       >
-        <ThreadActionsView<ThreadValues>
-          threadData={
-            threadData as {
-              thread: Thread<ThreadValues>;
-              status: "interrupted";
-              interrupts: HumanInterrupt[];
+        {isInterruptedThread ? (
+          <ThreadActionsView<ThreadValues>
+            threadData={
+              threadData as {
+                thread: Thread<ThreadValues>;
+                status: "interrupted";
+                interrupts: HumanInterrupt[];
+              }
             }
-          }
-          setThreadData={setThreadData}
-          handleShowSidePanel={handleShowSidePanel}
-          showState={showState}
-          showDescription={showDescription}
-        />
+            setThreadData={setThreadData}
+            handleShowSidePanel={handleShowSidePanel}
+            showState={showState}
+            showDescription={showDescription}
+          />
+        ) : (
+          <DummyThreadActionsView<ThreadValues>
+            threadData={threadData}
+            handleShowSidePanel={handleShowSidePanel}
+            showState={showState}
+            showDescription={showDescription}
+          />
+        )}
       </div>
       <div
         className={cn(
