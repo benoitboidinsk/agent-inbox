@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useQueryParams } from "../hooks/use-query-params";
-import { Layers, Loader, TriangleAlert, ZapOff } from "lucide-react";
+import { Layers, Loader, Play, TriangleAlert, ZapOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { INBOX_PARAM } from "../constants";
+import { INBOX_PARAM, START_RUN_QUERY_PARAM } from "../constants";
 import { ThreadStatusWithAll } from "../types";
 
 const idleInboxesSVG = (
@@ -60,36 +60,53 @@ export function InboxButtons({
 }: {
   changeInbox: (inbox: ThreadStatusWithAll) => void;
 }) {
-  const { searchParams } = useQueryParams();
+  const { searchParams, updateQueryParams } = useQueryParams();
   const selectedInbox = searchParams.get(INBOX_PARAM) || "interrupted";
 
+  const handleStartRun = () => {
+    updateQueryParams(START_RUN_QUERY_PARAM, "true");
+  };
+
   return (
-    <div className="flex w-full gap-2 items-center justify-start">
-      <InboxButton
-        label="All"
-        selectedInbox={selectedInbox}
-        onClick={() => changeInbox("all")}
-      />
-      <InboxButton
-        label="Interrupted"
-        selectedInbox={selectedInbox}
-        onClick={() => changeInbox("interrupted")}
-      />
-      <InboxButton
-        label="Idle"
-        selectedInbox={selectedInbox}
-        onClick={() => changeInbox("idle")}
-      />
-      <InboxButton
-        label="Busy"
-        selectedInbox={selectedInbox}
-        onClick={() => changeInbox("busy")}
-      />
-      <InboxButton
-        label="Error"
-        selectedInbox={selectedInbox}
-        onClick={() => changeInbox("error")}
-      />
+    <div className="flex w-full items-center justify-start">
+      <Button
+        onClick={handleStartRun}
+        className="text-[16px] leading-6 font-medium text-gray-500 mr-4"
+        variant="ghost"
+      >
+        <Play className="mr-1 h-5 w-5" />
+        Start Run
+      </Button>
+      
+      <div className="h-8 w-px bg-gray-200 mr-4"></div>
+      
+      <div className="flex gap-2 items-center">
+        <InboxButton
+          label="All"
+          selectedInbox={selectedInbox}
+          onClick={() => changeInbox("all")}
+        />
+        <InboxButton
+          label="Interrupted"
+          selectedInbox={selectedInbox}
+          onClick={() => changeInbox("interrupted")}
+        />
+        <InboxButton
+          label="Idle"
+          selectedInbox={selectedInbox}
+          onClick={() => changeInbox("idle")}
+        />
+        <InboxButton
+          label="Busy"
+          selectedInbox={selectedInbox}
+          onClick={() => changeInbox("busy")}
+        />
+        <InboxButton
+          label="Error"
+          selectedInbox={selectedInbox}
+          onClick={() => changeInbox("error")}
+        />
+      </div>
     </div>
   );
 }

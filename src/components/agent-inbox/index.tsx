@@ -1,9 +1,10 @@
 import React from "react";
 import { useQueryParams } from "./hooks/use-query-params";
-import { INBOX_PARAM, VIEW_STATE_THREAD_QUERY_PARAM } from "./constants";
+import { INBOX_PARAM, START_RUN_QUERY_PARAM, VIEW_STATE_THREAD_QUERY_PARAM } from "./constants";
 import { ThreadStatusWithAll } from "./types";
 import { AgentInboxView } from "./inbox-view";
 import { ThreadView } from "./thread-view";
+import { StartRunView } from "./start-run-view";
 
 export function AgentInbox<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -14,6 +15,9 @@ export function AgentInbox<
 
   const selectedThreadIdParam = searchParams.get(VIEW_STATE_THREAD_QUERY_PARAM);
   const isStateViewOpen = !!selectedThreadIdParam;
+  
+  const startRunParam = searchParams.get(START_RUN_QUERY_PARAM);
+  const isStartRunViewOpen = startRunParam === "true";
 
   React.useEffect(() => {
     try {
@@ -33,7 +37,9 @@ export function AgentInbox<
     }
   }, [searchParams]);
 
-  if (isStateViewOpen) {
+  if (isStartRunViewOpen) {
+    return <StartRunView />;
+  } else if (isStateViewOpen) {
     return <ThreadView threadId={selectedThreadIdParam} />;
   }
 
