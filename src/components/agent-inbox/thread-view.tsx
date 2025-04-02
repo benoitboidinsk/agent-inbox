@@ -2,6 +2,7 @@ import { Thread } from "@langchain/langgraph-sdk";
 import { StateView } from "./components/state-view";
 import { ThreadActionsView } from "./components/thread-actions-view";
 import { DummyThreadActionsView } from "./components/dummy-thread-actions-view";
+import { ThreadFinalView } from "./components/thread-final-view";
 import { useThreadsContext } from "./contexts/ThreadContext";
 import { HumanInterrupt, ThreadData } from "./types";
 import React from "react";
@@ -63,18 +64,26 @@ export function ThreadView<
     return null;
   }
 
-  // Check if this is an interrupted thread with interrupts
+  // Determine which view to show based on thread status
   const isInterruptedThread = 
     threadData.status === "interrupted" && 
     threadData.interrupts && 
     threadData.interrupts.length > 0;
+    
+  // Check if this is a completed thread (idle or error)
+  const isCompletedThread = 
+    threadData.status === "idle" || 
+    threadData.status === "error";
+
+  // For completed threads, we don't need the side panel
+  const effectiveShowSidePanel = isCompletedThread ? false : showSidePanel;
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-full">
       <div
         className={cn(
           "flex overflow-y-auto",
-          showSidePanel ? "lg:min-w-1/2 lg:max-w-2xl w-full" : "w-full"
+          effectiveShowSidePanel ? "lg:min-w-1/2 lg:max-w-2xl w-full" : "w-full"
         )}
       >
         {isInterruptedThread ? (
@@ -91,6 +100,11 @@ export function ThreadView<
             showState={showState}
             showDescription={showDescription}
           />
+        ) : isCompletedThread ? (
+          <ThreadFinalView<ThreadValues>
+            threadData={threadData}
+            handleShowSidePanel={handleShowSidePanel}
+          />
         ) : (
           <DummyThreadActionsView<ThreadValues>
             threadData={threadData}
@@ -102,7 +116,7 @@ export function ThreadView<
       </div>
       <div
         className={cn(
-          showSidePanel ? "flex" : "hidden",
+          effectiveShowSidePanel ? "flex" : "hidden",
           "overflow-y-auto lg:max-w-1/2 w-full"
         )}
       >
