@@ -36,6 +36,17 @@ import {
 } from "./utils";
 import { useLocalStorage } from "../hooks/use-local-storage";
 
+// Define the InputSchemaField type for form generation
+export interface InputSchemaField {
+  name: string;
+  label?: string;
+  description?: string;
+  type: 'string' | 'textarea' | 'number' | 'boolean';
+  required?: boolean;
+  placeholder?: string;
+  rows?: number;
+}
+
 type ThreadContentType<
   ThreadValues extends Record<string, any> = Record<string, any>,
 > = {
@@ -48,6 +59,8 @@ type ThreadContentType<
   addAgentInbox: (agentInbox: AgentInbox) => void;
   ignoreThread: (threadId: string) => Promise<void>;
   fetchThreads: (inbox: ThreadStatusWithAll) => Promise<void>;
+  fetchSchema: (graphId: string) => Promise<InputSchemaField[]>;
+  triggerNewRun: (graphId: string, input: Record<string, any>) => Promise<{ thread_id: string }>;
   sendHumanResponse: <TStream extends boolean = false>(
     threadId: string,
     response: HumanResponse[],
@@ -549,6 +562,186 @@ export function ThreadsProvider<
     }
   };
 
+  const fetchSchema = React.useCallback(
+    async (graphId: string): Promise<InputSchemaField[]> => {
+      const client = getClient({
+        agentInboxes,
+        getItem,
+        toast,
+      });
+      if (!client) {
+        throw new Error("LangGraph client is not available. Check configuration.");
+      }
+      if (!graphId) {
+        throw new Error("Graph ID is required to fetch schema.");
+      }
+
+      try {
+        console.log(`Fetching schema for graph ${graphId}...`);
+        
+        // First search for assistants with this graphId
+        const assistants = await client.assistants.search({ graphId });
+        console.log(`Found ${assistants.length} assistants for graph ${graphId}`);
+        
+        if (assistants.length === 0) {
+          throw new Error(`No assistants found for graph ID: ${graphId}`);
+        }
+
+        // Use the first assistant (there might be multiple with same graphId)
+        const assistant = assistants[0];
+        console.log('Using assistant:', {
+          id: assistant.assistant_id,
+          name: assistant.name,
+          graph_id: assistant.graph_id
+        });
+
+        // Get the schema using the assistant ID
+        const rawSchema = await client.assistants.getSchemas(assistant.assistant_id);
+        console.log('Fetched schema:', rawSchema);
+        
+        // Parse the schema into the expected format
+        const parsedSchema = parseGraphSchemaToInputFields(rawSchema);
+        console.log('Parsed schema:', parsedSchema);
+        
+        return parsedSchema;
+      } catch (error: any) {
+        console.error("Error fetching schema:", error);
+        // Return a default schema as fallback
+        console.log("Returning default schema due to error");
+        return [
+          { 
+            name: 'input_prompt', 
+            label: 'Input', 
+            type: 'textarea', 
+            required: true,
+            rows: 5,
+            placeholder: 'Enter your input for the agent...',
+            description: 'Provide instructions or data for the agent to process in this run.'
+          }
+        ];
+      }
+    },
+    [agentInboxes, getItem, toast]
+  );
+  
+  // Helper function to parse the raw schema into InputSchemaField format
+  const parseGraphSchemaToInputFields = (rawSchema: any): InputSchemaField[] => {
+    if (!rawSchema) {
+      console.warn('Raw schema is null or undefined');
+      return [];
+    }
+    
+    // Log the structure to help debug
+    console.log('Schema structure keys:', Object.keys(rawSchema));
+    
+    // Try to find the schema properties from different possible locations
+    const properties = 
+      (rawSchema.input_schema && rawSchema.input_schema.properties) ||
+      (rawSchema.config_schema && rawSchema.config_schema.properties) ||
+      (rawSchema.properties) ||
+      {};
+      
+    // Log the properties
+    console.log('Found properties:', Object.keys(properties));
+    
+    if (Object.keys(properties).length === 0) {
+      console.warn('No properties found in schema');
+      return [];
+    }
+    
+    // Find required fields
+    const requiredFields = 
+      (rawSchema.input_schema && rawSchema.input_schema.required) ||
+      (rawSchema.config_schema && rawSchema.config_schema.required) ||
+      (rawSchema.required) ||
+      [];
+      
+    console.log('Required fields:', requiredFields);
+    
+    // Convert the properties to InputSchemaField format
+    return Object.entries(properties).map(([name, propDetails]: [string, any]) => {
+      console.log(`Processing field: ${name}`, propDetails);
+      
+      // Determine the field type
+      let fieldType: 'string' | 'textarea' | 'number' | 'boolean' = 'string';
+      if (propDetails.type === 'number' || propDetails.type === 'integer') {
+        fieldType = 'number';
+      } else if (propDetails.type === 'boolean') {
+        fieldType = 'boolean';
+      } else if (
+        propDetails.format === 'multi-line' || 
+        propDetails.format === 'textarea' ||
+        (propDetails.description && propDetails.description.toLowerCase().includes('multi-line')) ||
+        name.toLowerCase().includes('description') ||
+        name.toLowerCase().includes('content') ||
+        name.toLowerCase().includes('text')
+      ) {
+        fieldType = 'textarea';
+      }
+      
+      return {
+        name,
+        label: propDetails.title || name.replace(/_/g, ' '),
+        description: propDetails.description,
+        type: fieldType,
+        required: requiredFields.includes(name),
+        placeholder: propDetails.examples?.[0] || propDetails.default || '',
+        rows: fieldType === 'textarea' ? 5 : undefined,
+      };
+    });
+  };
+
+  const triggerNewRun = React.useCallback(
+    async (graphId: string, input: Record<string, any>): Promise<{ thread_id: string }> => {
+      const client = getClient({
+        agentInboxes,
+        getItem,
+        toast,
+      });
+      if (!client) {
+        throw new Error("LangGraph client is not available. Check configuration.");
+      }
+      if (!graphId) {
+        throw new Error("Graph ID is required to trigger a run.");
+      }
+
+      try {
+        // First search for assistants with this graphId
+        const assistants = await client.assistants.search({ graphId });
+        console.log(`Found ${assistants.length} assistants for graph ${graphId}`);
+        
+        if (assistants.length === 0) {
+          throw new Error(`No assistants found for graph ID: ${graphId}`);
+        }
+
+        // Use the first assistant (there might be multiple with same graphId)
+        const assistant = assistants[0];
+        console.log('Using assistant:', {
+          id: assistant.assistant_id,
+          name: assistant.name,
+          graph_id: assistant.graph_id
+        });
+
+        // Create a new thread and run using the assistant ID
+        const newThread = await client.threads.create();
+        if (!newThread?.thread_id) {
+          throw new Error('Thread created successfully, but thread_id was missing.');
+        }
+        
+        console.log(`Triggering run in thread ${newThread.thread_id} with assistant ${assistant.assistant_id} and input:`, input);
+        await client.runs.create(newThread.thread_id, assistant.assistant_id, {
+          input: input,
+        });
+
+        return { thread_id: newThread.thread_id };
+      } catch (error: any) {
+        console.error("Error triggering new run:", error);
+        throw new Error(`Failed to trigger run: ${error.message || 'Unknown error'}`);
+      }
+    },
+    [agentInboxes, getItem, toast]
+  );
+
   const sendHumanResponse = <TStream extends boolean = false>(
     threadId: string,
     response: HumanResponse[],
@@ -614,6 +807,8 @@ export function ThreadsProvider<
     sendHumanResponse,
     fetchThreads,
     fetchSingleThread,
+    fetchSchema,
+    triggerNewRun,
   };
 
   return (
