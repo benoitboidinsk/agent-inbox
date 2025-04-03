@@ -4,6 +4,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Landing page animations */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+    box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.7);
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0.3;
+    box-shadow: 0 0 0 15px rgba(220, 20, 60, 0.1);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+    box-shadow: 0 0 0 0 rgba(220, 20, 60, 0);
+  }
+}
+
+.animate-fadeInSlideUp {
+  animation: fadeInSlideUp 1.5s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* Delayed pulse animation that starts after other elements appear */
+.animate-delayedPulse {
+  animation: pulse 3s ease-in-out 2s infinite;
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
