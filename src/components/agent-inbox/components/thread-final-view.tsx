@@ -13,8 +13,8 @@ import { useThreadsContext } from "../contexts/ThreadContext";
 import { StateViewObject } from "./state-view";
 import { MarkdownText } from "@/components/ui/markdown-text";
 import React, { useState, useEffect } from "react";
-import SurveyViewer from "@/components/survey-viewer";
-import { Survey } from "@/lib/types";
+import { SectionRenderer } from "@/components/section-renderer";
+import { Survey, Section } from "@/lib/types";
 
 interface ThreadFinalViewProps<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -214,9 +214,35 @@ export function ThreadFinalView<
             <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
               <h3 className="text-base font-medium">{config.markdownTitle}</h3>
             </div>
-            <div className="p-4 overflow-auto flex-grow">
+            <div className="p-6 overflow-auto flex-grow">
               {values[config.surveyKey] ? (
-                <SurveyViewer survey={values[config.surveyKey] as Survey} />
+                <div className="w-full">
+                  {/* Survey Header */}
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-semibold mb-2">{values[config.surveyKey].title}</h2>
+                    {values[config.surveyKey].description && (
+                      <p className="text-gray-600">{values[config.surveyKey].description}</p>
+                    )}
+                    <div className="mt-4 space-y-2">
+                      <div>
+                        <span className="font-semibold">Subject:</span> {values[config.surveyKey].subject}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Objective:</span> {values[config.surveyKey].objective}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Survey Sections */}
+                  <div className="space-y-8">
+                    {(values[config.surveyKey] as Survey).sections.map((section: Section, index: number) => (
+                      <div key={section.id}>
+                        {index > 0 && <div className="my-8 h-px bg-gray-200"></div>}
+                        <SectionRenderer section={section} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div className="prose max-w-none">
                   <MarkdownText>
@@ -228,22 +254,36 @@ export function ThreadFinalView<
           </div>
         </div>
         
-        {/* Full state on the right - takes 1/3 of the space */}
+        {/* State panel on the right - takes 1/3 of the space */}
         <div className="min-w-0 overflow-hidden flex flex-col md:col-span-1">
           <div className="border border-gray-200 rounded-lg flex flex-col h-full">
-            <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
+            <div className="border-b border-gray-200 px-4 py-3 bg-gray-50 flex justify-between items-center">
               <h3 className="text-base font-medium">{config.stateTitle}</h3>
+              <Button
+                onClick={() => setExpanded((prev) => !prev)}
+                variant="ghost"
+                className="text-gray-600"
+                size="sm"
+              >
+                {expanded ? (
+                  <ChevronsUpDown className="w-4 h-4" />
+                ) : (
+                  <ChevronsDownUp className="w-4 h-4" />
+                )}
+              </Button>
             </div>
             <div className="p-4 overflow-auto flex-grow max-h-[calc(100vh-250px)]">
               <div className="flex flex-col gap-4">
-                {Object.entries(values).map(([key, value], idx) => (
-                  <StateViewObject
-                    key={`state-view-${key}-${idx}`}
-                    keyName={key}
-                    value={value}
-                    expanded={expanded}
-                  />
-                ))}
+                {Object.entries(values)
+                  .filter(([key]) => key !== config.surveyKey) // Optionally filter out the survey to avoid duplication
+                  .map(([key, value], idx) => (
+                    <StateViewObject
+                      key={`state-view-${key}-${idx}`}
+                      keyName={key}
+                      value={value}
+                      expanded={expanded}
+                    />
+                  ))}
               </div>
             </div>
           </div>
