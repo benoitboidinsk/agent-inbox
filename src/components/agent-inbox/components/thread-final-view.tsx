@@ -13,6 +13,8 @@ import { useThreadsContext } from "../contexts/ThreadContext";
 import { StateViewObject } from "./state-view";
 import { MarkdownText } from "@/components/ui/markdown-text";
 import React, { useState, useEffect } from "react";
+import SurveyViewer from "@/components/survey-viewer";
+import { Survey } from "@/lib/types";
 
 interface ThreadFinalViewProps<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -21,7 +23,7 @@ interface ThreadFinalViewProps<
   handleShowSidePanel: (showState: boolean, showDescription: boolean) => void;
 }
 
-// Configuration for which view to use based on graph ID
+  // Configuration for which view to use based on graph ID
 const GRAPH_VIEW_CONFIG = {
   // Map of graph IDs to their display configurations
   "Survey_Builder": {
@@ -35,7 +37,9 @@ const GRAPH_VIEW_CONFIG = {
     stateTitle: "Complete State",
     // Function to get the page title
     getTitle: (values: Record<string, any>) => 
-      values.survey_title || values.title || "Survey Results"
+      values.survey_title || values.title || "Survey Results",
+    // Key for the survey data
+    surveyKey: "final_survey"
   },
   // Default configuration for any other graph
   "default": {
@@ -44,7 +48,9 @@ const GRAPH_VIEW_CONFIG = {
     markdownTitle: "Results",
     stateTitle: "Thread State",
     getTitle: (values: Record<string, any>) => 
-      values.title || "Thread Results"
+      values.title || "Thread Results",
+    // Key for the survey data
+    surveyKey: "final_survey"
   }
 };
 
@@ -201,25 +207,29 @@ export function ThreadFinalView<
       </div>
 
       {/* Main content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-full overflow-hidden">
-        {/* Markdown content on the left */}
-        <div className="min-w-0 overflow-hidden flex flex-col">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-full overflow-hidden">
+        {/* Results content on the left - takes 2/3 of the space */}
+        <div className="min-w-0 overflow-hidden flex flex-col md:col-span-2">
           <div className="border border-gray-200 rounded-lg flex flex-col h-full">
             <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
               <h3 className="text-base font-medium">{config.markdownTitle}</h3>
             </div>
             <div className="p-4 overflow-auto flex-grow">
-              <div className="prose max-w-none">
-                <MarkdownText>
-                  {effectiveMarkdownContent || "No results available"}
-                </MarkdownText>
-              </div>
+              {values[config.surveyKey] ? (
+                <SurveyViewer survey={values[config.surveyKey] as Survey} />
+              ) : (
+                <div className="prose max-w-none">
+                  <MarkdownText>
+                    {effectiveMarkdownContent || "No results available"}
+                  </MarkdownText>
+                </div>
+              )}
             </div>
           </div>
         </div>
         
-        {/* Full state on the right */}
-        <div className="min-w-0 overflow-hidden flex flex-col">
+        {/* Full state on the right - takes 1/3 of the space */}
+        <div className="min-w-0 overflow-hidden flex flex-col md:col-span-1">
           <div className="border border-gray-200 rounded-lg flex flex-col h-full">
             <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
               <h3 className="text-base font-medium">{config.stateTitle}</h3>
