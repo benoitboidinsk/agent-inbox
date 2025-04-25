@@ -44,7 +44,7 @@ const GRAPH_VIEW_CONFIG = {
   // Default configuration for any other graph
   "default": {
     markdownKey: "output",
-    alternativeMarkdownKeys: ["result", "summary", "markdown"],
+    alternativeMarkdownKeys: ["result", "summary", "markdown", "report_md"],
     markdownTitle: "Results",
     stateTitle: "Thread State",
     getTitle: (values: Record<string, any>) => 

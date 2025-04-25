@@ -41,10 +41,15 @@ export interface InputSchemaField {
   name: string;
   label?: string;
   description?: string;
-  type: 'string' | 'textarea' | 'number' | 'boolean';
+  type: 'string' | 'textarea' | 'number' | 'boolean' | 'array';
   required?: boolean;
   placeholder?: string;
   rows?: number;
+  // For array fields
+  itemType?: 'string' | 'number' | 'boolean';
+  minItems?: number;
+  maxItems?: number;
+  prefixItems?: any[];
 }
 
 type ThreadContentType<
@@ -661,10 +666,29 @@ export function ThreadsProvider<
     // Convert the properties to InputSchemaField format
     return Object.entries(properties).map(([name, propDetails]: [string, any]) => {
       console.log(`Processing field: ${name}`, propDetails);
-      
+
       // Determine the field type
-      let fieldType: 'string' | 'textarea' | 'number' | 'boolean' = 'string';
-      if (propDetails.type === 'number' || propDetails.type === 'integer') {
+      let fieldType: 'string' | 'textarea' | 'number' | 'boolean' | 'array' = 'string';
+      let itemType: 'string' | 'number' | 'boolean' | undefined = undefined;
+      let minItems: number | undefined = undefined;
+      let maxItems: number | undefined = undefined;
+      let prefixItems: any[] | undefined = undefined;
+
+      if (propDetails.type === 'array') {
+        fieldType = 'array';
+        // Try to infer the item type
+        if (propDetails.items) {
+          if (typeof propDetails.items === 'object' && propDetails.items.type) {
+            itemType = propDetails.items.type;
+          } else if (Array.isArray(propDetails.items)) {
+            // Not standard, but handle as needed
+            itemType = 'string';
+          }
+        }
+        minItems = propDetails.minItems;
+        maxItems = propDetails.maxItems;
+        prefixItems = propDetails.prefixItems;
+      } else if (propDetails.type === 'number' || propDetails.type === 'integer') {
         fieldType = 'number';
       } else if (propDetails.type === 'boolean') {
         fieldType = 'boolean';
@@ -678,7 +702,7 @@ export function ThreadsProvider<
       ) {
         fieldType = 'textarea';
       }
-      
+
       return {
         name,
         label: propDetails.title || name.replace(/_/g, ' '),
@@ -687,6 +711,10 @@ export function ThreadsProvider<
         required: requiredFields.includes(name),
         placeholder: propDetails.examples?.[0] || propDetails.default || '',
         rows: fieldType === 'textarea' ? 5 : undefined,
+        itemType,
+        minItems,
+        maxItems,
+        prefixItems,
       };
     });
   };

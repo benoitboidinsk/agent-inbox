@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export function StartRunView() {
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<Record<string, string | any[]>>({});
   const [loading, setLoading] = useState(false);
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [newThreadId, setNewThreadId] = useState<string | null>(null);
@@ -259,6 +259,83 @@ export function StartRunView() {
                             <Label htmlFor={field.name} className="text-sm">
                               {field.placeholder || 'Enable'}
                             </Label>
+                          </div>
+                        ) : field.type === 'array' ? (
+                          <div className="flex flex-col gap-2 w-full">
+                            {Array.isArray(formData[field.name])
+                              ? (formData[field.name] as any[]).map((item: string, idx: number) => (
+                                  <div key={`${field.name}-item-${idx}`} className="flex items-center gap-2 w-full">
+                                    <Input
+                                      id={`${field.name}-${idx}`}
+                                      name={`${field.name}-${idx}`}
+                                      type={field.itemType === 'number' ? 'number' : 'text'}
+                                      value={item}
+                                      onChange={(e) => {
+                                        const arr = Array.isArray(formData[field.name]) ? [...(formData[field.name] as any[])] : [];
+                                        arr[idx] = e.target.value;
+                                        setFormData({ ...formData, [field.name]: arr });
+                                      }}
+                                      required={field.required}
+                                      placeholder={field.placeholder || ''}
+                                      disabled={loading}
+                                      className="w-full"
+                                    />
+                                    {/* Remove button for dynamic arrays (not for prefixItems/fixed length) */}
+                                    {(!field.prefixItems || idx >= field.prefixItems.length) && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          const arr = Array.isArray(formData[field.name]) ? [...(formData[field.name] as any[])] : [];
+                                          arr.splice(idx, 1);
+                                          setFormData({ ...formData, [field.name]: arr });
+                                        }}
+                                        disabled={loading}
+                                      >
+                                        Remove
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))
+                              : Array.isArray(field.prefixItems)
+                              ? field.prefixItems.map((_, idx: number) => (
+                                  <div key={`${field.name}-item-${idx}`} className="flex items-center gap-2 w-full">
+                                    <Input
+                                      id={`${field.name}-${idx}`}
+                                      name={`${field.name}-${idx}`}
+                                      type={field.itemType === 'number' ? 'number' : 'text'}
+                                      value={Array.isArray(formData[field.name]) ? (formData[field.name] as any[])[idx] || '' : ''}
+                                      onChange={(e) => {
+                                        const arr = Array.isArray(formData[field.name]) ? [...(formData[field.name] as any[])] : Array(field.prefixItems.length).fill('');
+                                        arr[idx] = e.target.value;
+                                        setFormData({ ...formData, [field.name]: arr });
+                                      }}
+                                      required={field.required}
+                                      placeholder={field.placeholder || ''}
+                                      disabled={loading}
+                                      className="w-full"
+                                    />
+                                  </div>
+                                ))
+                              : null}
+                            {/* Add button for dynamic arrays (if maxItems not reached) */}
+                            {(!field.maxItems ||
+                              (Array.isArray(formData[field.name]) ? (formData[field.name] as any[]).length : 0) < field.maxItems) && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const arr = Array.isArray(formData[field.name]) ? [...(formData[field.name] as any[])] : [];
+                                  arr.push('');
+                                  setFormData({ ...formData, [field.name]: arr });
+                                }}
+                                disabled={loading}
+                              >
+                                Add {field.label || field.name}
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <Input
