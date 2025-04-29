@@ -8,6 +8,8 @@ import {
   ThreadData,
   ThreadStatusWithAll,
 } from "@/components/agent-inbox/types";
+import { InputSchemaField } from "../types/schema";
+import { parseGraphSchemaToInputFields } from "../utils/schema";
 import { useToast, type ToastInput } from "@/hooks/use-toast";
 import { createClient } from "@/lib/client";
 import {
@@ -70,6 +72,8 @@ type ThreadContentType<
       }
     | undefined
   >;
+  fetchSchema: (graphId: string) => Promise<InputSchemaField[]>;
+  triggerNewRun: (graphId: string, input: Record<string, any>) => Promise<{ thread_id: string }>;
 };
 
 const ThreadsContext = React.createContext<ThreadContentType | undefined>(
@@ -602,6 +606,58 @@ export function ThreadsProvider<
     }
   };
 
+  const fetchSchema = React.useCallback(
+    async (graphId: string): Promise<InputSchemaField[]> => {
+      const client = getClient({ agentInboxes, getItem, toast });
+      if (!client) throw new Error("LangGraph client is not available.");
+      if (!graphId) throw new Error("Graph ID is required to fetch schema.");
+
+      try {
+        const assistants = await client.assistants.search({ graphId });
+        if (assistants.length === 0) throw new Error(`No assistants found for graph ID: ${graphId}`);
+        const assistant = assistants[0];
+        const rawSchema = await client.assistants.getSchemas(assistant.assistant_id);
+        return parseGraphSchemaToInputFields(rawSchema);
+      } catch (error: any) {
+        console.error("Error fetching schema:", error);
+        return [
+          { 
+            name: 'input_prompt', 
+            label: 'Input', 
+            type: 'textarea', 
+            required: true,
+            rows: 5,
+            placeholder: 'Enter your input for the agent...',
+            description: 'Provide instructions or data for the agent to process in this run.'
+          }
+        ];
+      }
+    },
+    [agentInboxes, getItem, toast]
+  );
+
+  const triggerNewRun = React.useCallback(
+    async (graphId: string, input: Record<string, any>): Promise<{ thread_id: string }> => {
+      const client = getClient({ agentInboxes, getItem, toast });
+      if (!client) throw new Error("LangGraph client is not available.");
+      if (!graphId) throw new Error("Graph ID is required to trigger a run.");
+
+      try {
+        const assistants = await client.assistants.search({ graphId });
+        if (assistants.length === 0) throw new Error(`No assistants found for graph ID: ${graphId}`);
+        const assistant = assistants[0];
+        const newThread = await client.threads.create();
+        if (!newThread?.thread_id) throw new Error('Thread created successfully, but thread_id was missing.');
+        await client.runs.create(newThread.thread_id, assistant.assistant_id, { input });
+        return { thread_id: newThread.thread_id };
+      } catch (error: any) {
+        console.error("Error triggering new run:", error);
+        throw new Error(`Failed to trigger run: ${error.message || 'Unknown error'}`);
+      }
+    },
+    [agentInboxes, getItem, toast]
+  );
+
   const contextValue: ThreadContentType = {
     loading,
     threadData,
@@ -614,6 +670,8 @@ export function ThreadsProvider<
     sendHumanResponse,
     fetchThreads,
     fetchSingleThread,
+    fetchSchema,
+    triggerNewRun,
   };
 
   return (

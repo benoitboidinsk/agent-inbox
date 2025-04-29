@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useQueryParams } from "../hooks/use-query-params";
-import { Layers, Loader, TriangleAlert, ZapOff } from "lucide-react";
+import { Layers, Loader, TriangleAlert, ZapOff, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { INBOX_PARAM } from "../constants";
+import { INBOX_PARAM, START_RUN_QUERY_PARAM } from "../constants";
 import { ThreadStatusWithAll } from "../types";
 
 const idleInboxesSVG = (
@@ -60,11 +61,26 @@ export function InboxButtons({
 }: {
   changeInbox: (inbox: ThreadStatusWithAll) => void;
 }) {
-  const { searchParams } = useQueryParams();
+  const { searchParams, updateQueryParams } = useQueryParams();
   const selectedInbox = searchParams.get(INBOX_PARAM) || "interrupted";
 
+  const handleStartRun = () => {
+    updateQueryParams(START_RUN_QUERY_PARAM, "true");
+  };
+
   return (
-    <div className="flex w-full gap-2 items-center justify-start">
+    <div className="flex w-full gap-2 items-center">
+      <Button 
+        onClick={handleStartRun}
+        variant="brand"
+        className="flex items-center gap-2 text-[16px] leading-6 font-medium"
+      >
+        <Play className="h-4 w-4" />
+        Start Run
+      </Button>
+      
+      <Separator orientation="vertical" className="h-6 mx-2" />
+      
       <InboxButton
         label="All"
         selectedInbox={selectedInbox}
