@@ -1,23 +1,29 @@
-import { Thread } from "@langchain/langgraph-sdk";
-import { StateView } from "./components/state-view";
-import { ThreadActionsView } from "./components/thread-actions-view";
-import { useThreadsContext } from "./contexts/ThreadContext";
-import { HumanInterrupt, ThreadData } from "./types";
 import React from "react";
-import { cn } from "@/lib/utils";
+import { Thread } from "@langchain/langgraph-sdk";
+import { ThreadPanel } from "./components/thread-panel";
+import { useThreadsContext } from "./contexts/ThreadContext";
+import { ThreadData } from "./types";
 import { useQueryParams } from "./hooks/use-query-params";
 import { VIEW_STATE_THREAD_QUERY_PARAM } from "./constants";
+import { THREAD_VIEW_CONFIG } from "./view-config";
 
 export function ThreadView<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >({ threadId }: { threadId: string }) {
   const { updateQueryParams } = useQueryParams();
-  const { threadData: threads, loading } = useThreadsContext<ThreadValues>();
+  const { threadData: threads, loading, agentInboxes } = useThreadsContext<ThreadValues>();
   const [threadData, setThreadData] =
     React.useState<ThreadData<ThreadValues>>();
-  const [showDescription, setShowDescription] = React.useState(true);
-  const [showState, setShowState] = React.useState(false);
-  const showSidePanel = showDescription || showState;
+  const [panelView, setPanelView] = React.useState<"state" | "description">("description");
+  const [panelExpanded, setPanelExpanded] = React.useState(true);
+  
+  // Get the graph ID from the selected agent inbox
+  
+  // Get the graph ID from the selected agent inbox
+  const graphId = agentInboxes.find(i => i.selected)?.graphId?.toLowerCase() || "default";
+  const config = THREAD_VIEW_CONFIG[graphId] || THREAD_VIEW_CONFIG.default;
+  console.log("[ThreadView] graphId:", graphId);
+  console.log("[ThreadView] Selected Config:", config);
 
   React.useEffect(() => {
     try {
@@ -38,69 +44,75 @@ export function ThreadView<
     }
   }, [threads, loading, threadId]);
 
-  const handleShowSidePanel = (
-    showState: boolean,
-    showDescription: boolean
-  ) => {
-    if (showState && showDescription) {
-      console.error("Cannot show both state and description");
-      return;
-    }
-    if (showState) {
-      setShowDescription(false);
-      setShowState(true);
-    } else if (showDescription) {
-      setShowState(false);
-      setShowDescription(true);
+  // Handle showing/hiding the side panel
+  const handleShowSidePanel = (panel: "state" | "description") => {
+    if (panelView === panel && panelExpanded) {
+      // If the panel is already expanded and showing the requested view, collapse it
+      setPanelExpanded(false);
     } else {
-      setShowState(false);
-      setShowDescription(false);
+      // Otherwise, show the requested panel
+      setPanelView(panel);
+      setPanelExpanded(true);
     }
   };
 
-  if (
-    !threadData ||
-    threadData.status !== "interrupted" ||
-    !threadData.interrupts ||
-    threadData.interrupts.length === 0
-  ) {
+  if (!threadData) {
     return null;
   }
 
+  // Determine if this is an interrupted thread or a completed thread
+  const isInterrupted = 
+    threadData.status === "interrupted" && 
+    threadData.interrupts && 
+    threadData.interrupts.length > 0;
+  
+  const isCompleted = threadData.status === "idle" || threadData.status === "error";
+
+  // Determine the component and state key based on status
+  let ViewComponent: React.ComponentType<any>;
+  let stateKey: string | undefined;
+  console.log("[ThreadView] isInterrupted:", isInterrupted, "isCompleted:", isCompleted);
+
+  if (isInterrupted) {
+    ViewComponent = config.actionViewComponent;
+    // Action view specific props might be needed here if not handled internally
+    // For now, assuming ThreadActionsView handles its own data needs via hooks/props
+  } else if (isCompleted) {
+    ViewComponent = config.finalViewComponent;
+    stateKey = config.finalStateKey;
+    console.log("[ThreadView] Using Final View Component:", ViewComponent.name, "with stateKey:", stateKey);
+  } else {
+    // If it's neither interrupted nor completed (e.g., busy), don't render a specific view yet
+    // Or potentially render a loading/busy state? For now, return null.
+    return null; 
+  }
+
+  // Common props for the view component
+  const viewProps = {
+    threadData: threadData,
+    stateKey: stateKey, // Pass stateKey for final views
+    // Props needed by ThreadActionsView (if ViewComponent is ThreadActionsView)
+    ...(isInterrupted && {
+      setThreadData: setThreadData,
+      handleShowSidePanel: handleShowSidePanel,
+      panelView: panelView,
+      panelExpanded: panelExpanded,
+      // Ensure interrupts is passed correctly if needed directly by ThreadActionsView
+      // This might require adjusting ThreadActionsView props or how data is passed
+      interrupts: threadData.interrupts || [], 
+    }),
+    // Props needed by Final Views (Survey/Markdown) are handled via stateKey
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row w-full h-full">
-      <div
-        className={cn(
-          "flex overflow-y-auto",
-          showSidePanel ? "lg:min-w-1/2 lg:max-w-2xl w-full" : "w-full"
-        )}
-      >
-        <ThreadActionsView<ThreadValues>
-          threadData={
-            threadData as {
-              thread: Thread<ThreadValues>;
-              status: "interrupted";
-              interrupts: HumanInterrupt[];
-            }
-          }
-          setThreadData={setThreadData}
-          handleShowSidePanel={handleShowSidePanel}
-          showState={showState}
-          showDescription={showDescription}
-        />
-      </div>
-      <div
-        className={cn(
-          showSidePanel ? "flex" : "hidden",
-          "overflow-y-auto lg:max-w-1/2 w-full"
-        )}
-      >
-        <StateView
-          handleShowSidePanel={handleShowSidePanel}
-          threadData={threadData}
-          view={showState ? "state" : "description"}
-        />
-      </div>
-    </div>
+    <ThreadPanel
+      threadData={threadData}
+      panelView={panelView}
+      panelExpanded={panelExpanded}
+      handleShowSidePanel={handleShowSidePanel}
+    >
+      {/* Render the dynamically selected component */}
+      <ViewComponent {...viewProps} />
+    </ThreadPanel>
   );
 }

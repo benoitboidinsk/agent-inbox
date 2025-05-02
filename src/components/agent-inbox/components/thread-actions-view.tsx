@@ -24,21 +24,19 @@ interface ThreadActionsViewProps<
   setThreadData: React.Dispatch<
     React.SetStateAction<ThreadData<ThreadValues> | undefined>
   >;
-  handleShowSidePanel: (showState: boolean, showDescription: boolean) => void;
-  showState: boolean;
-  showDescription: boolean;
+  handleShowSidePanel: (panel: "state" | "description") => void;
+  panelView: "state" | "description";
+  panelExpanded: boolean;
 }
 
 function ButtonGroup({
-  handleShowState,
-  handleShowDescription,
-  showingState,
-  showingDescription,
+  handleTogglePanel,
+  panelView,
+  panelExpanded,
 }: {
-  handleShowState: () => void;
-  handleShowDescription: () => void;
-  showingState: boolean;
-  showingDescription: boolean;
+  handleTogglePanel: (panel: "state" | "description") => void;
+  panelView: "state" | "description";
+  panelExpanded: boolean;
 }) {
   return (
     <div className="flex flex-row gap-0 items-center justify-center">
@@ -46,10 +44,10 @@ function ButtonGroup({
         variant="outline"
         className={cn(
           "rounded-l-md rounded-r-none border-r-[0px]",
-          showingState ? "text-black" : "bg-white"
+          panelView === "state" && panelExpanded ? "text-black" : "bg-white"
         )}
         size="sm"
-        onClick={handleShowState}
+        onClick={() => handleTogglePanel("state")}
       >
         State
       </Button>
@@ -57,10 +55,10 @@ function ButtonGroup({
         variant="outline"
         className={cn(
           "rounded-l-none rounded-r-md border-l-[0px]",
-          showingDescription ? "text-black" : "bg-white"
+          panelView === "description" && panelExpanded ? "text-black" : "bg-white"
         )}
         size="sm"
-        onClick={handleShowDescription}
+        onClick={() => handleTogglePanel("description")}
       >
         Description
       </Button>
@@ -74,8 +72,8 @@ export function ThreadActionsView<
   threadData,
   setThreadData,
   handleShowSidePanel,
-  showDescription,
-  showState,
+  panelView,
+  panelExpanded,
 }: ThreadActionsViewProps<ThreadValues>) {
   const {
     acceptAllowed,
@@ -154,10 +152,17 @@ export function ThreadActionsView<
             </Button>
           )}
           <ButtonGroup
-            handleShowState={() => handleShowSidePanel(true, false)}
-            handleShowDescription={() => handleShowSidePanel(false, true)}
-            showingState={showState}
-            showingDescription={showDescription}
+            handleTogglePanel={(panel) => {
+              if (panelView === panel && panelExpanded) {
+                // If the panel is already expanded and showing the requested view, collapse it
+                handleShowSidePanel(panel === "state" ? "description" : "state");
+              } else {
+                // Otherwise, show the requested panel
+                handleShowSidePanel(panel);
+              }
+            }}
+            panelView={panelView}
+            panelExpanded={panelExpanded}
           />
         </div>
       </div>
