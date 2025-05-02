@@ -1,6 +1,7 @@
 "use client";
 
 import NextLink from "next/link";
+import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +12,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { FileText, Trash2 } from "lucide-react";
-import { agentInboxSvg } from "../agent-inbox/components/agent-inbox-logo";
 import { SettingsPopover } from "../agent-inbox/components/settings-popover";
 import { PillButton } from "../ui/pill-button";
 import React from "react";
@@ -97,8 +97,14 @@ export function AppSidebar() {
     <Sidebar className="border-r-[0px] bg-[#F9FAFB]">
       <SidebarContent className="flex flex-col h-screen pb-9 pt-6">
         <div className="flex items-center justify-between px-11">
-          <NextLink href="/" className="flex-shrink-0 w-full">
-            {agentInboxSvg}
+          <NextLink href="/" className="flex-shrink-0">
+            <Image
+              src="/icons/SK_logo.png"
+              alt="Logo"
+              width={96}
+              height={21}
+              className="object-contain"
+            />
           </NextLink>
           <AppSidebarTrigger isOutside={false} className="mt-1" />
         </div>
