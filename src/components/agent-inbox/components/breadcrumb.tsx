@@ -8,6 +8,7 @@ import { useQueryParams } from "../hooks/use-query-params";
 import {
   AGENT_INBOX_PARAM,
   INBOX_PARAM,
+  START_RUN_QUERY_PARAM, // Added import
   VIEW_STATE_THREAD_QUERY_PARAM,
 } from "../constants";
 import { HumanInterrupt, ThreadStatusWithAll } from "../types";
@@ -20,43 +21,57 @@ export function BreadCrumb({ className }: { className?: string }) {
   const { threadData, agentInboxes } = useThreadsContext();
   const [agentInboxLabel, setAgentInboxLabel] = React.useState<string>();
   const [selectedInboxLabel, setSelectedInboxLabel] = React.useState<string>();
-  const [selectedThreadActionLabel, setSelectedThreadActionLabel] =
-    React.useState<string>();
+  const [selectedThreadActionLabel, setSelectedThreadActionLabel] = React.useState<string>();
+  const [selectedThreadResultLabel, setSelectedThreadResultLabel] = React.useState<string>();
+  const [startRunLabel, setStartRunLabel] = React.useState<string>(); // Added state for start run label
 
   React.useEffect(() => {
+    // Reset labels initially
+    setSelectedInboxLabel(undefined);
+    setSelectedThreadActionLabel(undefined);
+    setSelectedThreadResultLabel(undefined);
+    setStartRunLabel(undefined);
+
     try {
+      // 1. Set Agent Inbox Label
       const selectedAgentInbox = agentInboxes.find((a) => a.selected);
       if (selectedAgentInbox) {
         const selectedAgentInboxLabel =
           selectedAgentInbox.name || prettifyText(selectedAgentInbox.graphId);
-        setAgentInboxLabel(selectedAgentInboxLabel);
-      } else {
-        setAgentInboxLabel(undefined);
+        setAgentInboxLabel(selectedAgentInbox.name || prettifyText(selectedAgentInbox.graphId));
       }
 
-      const selectedInboxParam = searchParams.get(INBOX_PARAM) as
-        | ThreadStatusWithAll
-        | undefined;
+      // 2. Check for Start Run View
+      const isStartRunView = searchParams.get(START_RUN_QUERY_PARAM) === 'true';
+      if (isStartRunView) {
+        setStartRunLabel("Start New Run");
+        // No further labels needed for start run view
+        return; 
+      }
+
+      // 3. Set Inbox Filter Label (if not in start run view)
+      const selectedInboxParam = searchParams.get(INBOX_PARAM) as ThreadStatusWithAll | undefined;
       if (selectedInboxParam) {
         setSelectedInboxLabel(prettifyText(selectedInboxParam));
-      } else {
-        setSelectedInboxLabel(undefined);
       }
 
-      const selectedThreadIdParam = searchParams.get(
-        VIEW_STATE_THREAD_QUERY_PARAM
-      );
-      const selectedThread = threadData.find(
-        (t) => t.thread.thread_id === selectedThreadIdParam
-      );
-      const selectedThreadAction = (
-        selectedThread?.interrupts as HumanInterrupt[] | undefined
-      )?.[0]?.action_request?.action;
-      if (selectedThreadAction) {
-        setSelectedThreadActionLabel(prettifyText(selectedThreadAction));
-      } else {
-        setSelectedThreadActionLabel(undefined);
-      }
+      // 4. Check for Thread View (Action or Results)
+      const selectedThreadIdParam = searchParams.get(VIEW_STATE_THREAD_QUERY_PARAM);
+      if (selectedThreadIdParam) {
+        const selectedThread = threadData.find(
+          (t) => t.thread.thread_id === selectedThreadIdParam
+        );
+        if (selectedThread) {
+          const selectedThreadAction = (selectedThread.interrupts as HumanInterrupt[] | undefined)?.[0]?.action_request?.action;
+          if (selectedThreadAction) {
+            // Interrupted Thread View
+            setSelectedThreadActionLabel(prettifyText(selectedThreadAction));
+          } else if (selectedThread.status === 'idle' || selectedThread.status === 'error') {
+            // Completed Thread View
+            setSelectedThreadResultLabel("Results");
+          }
+        }
+      } 
     } catch (e) {
       console.error("Error while updating breadcrumb", e);
     }
@@ -103,14 +118,14 @@ export function BreadCrumb({ className }: { className?: string }) {
           </NextLink>
         </>
       )}
-      {selectedThreadActionLabel && (
+      {/* Render Action Label OR Result Label OR Start Run Label */}
+      {(selectedThreadActionLabel || selectedThreadResultLabel || startRunLabel) && (
         <>
           <ChevronRight className="h-[14px] w-[14px]" />
-          <NextLink href={window.location.pathname + window.location.search}>
-            <Button size="sm" className="text-gray-500" variant="link">
-              {selectedThreadActionLabel}
-            </Button>
-          </NextLink>
+          {/* Link is non-interactive for the last item */}
+          <Button size="sm" className="text-gray-700 font-medium px-2" variant="link" disabled style={{ cursor: 'default', textDecoration: 'none', color: 'inherit' }}>
+            {startRunLabel || selectedThreadActionLabel || selectedThreadResultLabel}
+          </Button>
         </>
       )}
     </div>

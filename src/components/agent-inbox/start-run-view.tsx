@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { BreadCrumb } from "./components/breadcrumb";
-import { LoaderCircle, Copy, ArrowRight } from "lucide-react";
+import { TooltipIconButton } from "@/components/ui/assistant-ui/tooltip-icon-button"; // Import TooltipIconButton
+import { ArrowLeft, LoaderCircle, Copy, ArrowRight } from "lucide-react"; // Import ArrowLeft
 import { useToast } from "@/hooks/use-toast";
 
 export function StartRunView() {
@@ -285,13 +285,25 @@ export function StartRunView() {
   };
 
   return (
-    <div className="min-w-[1000px] h-full overflow-y-auto">
-      <div className="pl-5 pt-4">
-        <BreadCrumb />
-      </div>
+    // Removed outer div and BreadCrumb rendering
+    // <div className="min-w-[1000px] h-full overflow-y-auto">
+    //   <div className="pl-5 pt-4">
+    //     <BreadCrumb />
+    //   </div>
       
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Start New Run</h1>
+      <div className="p-6 h-full overflow-y-auto"> {/* Added overflow-y-auto here */}
+        {/* Header section mimicking ThreadPanel */}
+        <div className="flex items-center justify-start gap-3 mb-6"> {/* Matched gap and alignment */}
+          <TooltipIconButton
+            variant="ghost"
+            onClick={() => updateQueryParams(START_RUN_QUERY_PARAM)} // Remove param to go back
+            tooltip="Back to Inbox"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </TooltipIconButton>
+          {/* Use p tag and classes like ThreadPanel for title */}
+          <p className="text-2xl tracking-tighter text-pretty">Start New Run</p> 
+        </div>
         
         {newThreadId ? (
           <Alert className="mb-6 border-green-200 bg-green-50">
@@ -350,6 +362,6 @@ export function StartRunView() {
           </form>
         )}
       </div>
-    </div>
+    // </div> Removed closing tag
   );
 }

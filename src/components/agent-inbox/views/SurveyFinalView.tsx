@@ -1,8 +1,10 @@
 import React from "react";
 import { ThreadData } from "../types";
-import { Survey, isSurveyData } from "../types/view";
+import { Survey, isSurveyData } from "../types/survey"; // Updated import path
 import { SectionRenderer } from "../components/section-renderer";
 import { MarkdownText } from "@/components/ui/markdown-text"; // For fallback
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
+import { Separator } from "@/components/ui/separator"; // Import Separator
 
 interface SurveyFinalViewProps<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -17,14 +19,10 @@ export function SurveyFinalView<
   const values = threadData.thread.values || {};
   
   // Attempt to get the survey data from the specified stateKey
-  console.log("[SurveyFinalView] Received stateKey:", stateKey);
   const potentialSurveyData = stateKey ? values[stateKey] : null;
-  console.log("[SurveyFinalView] Potential Survey Data:", potentialSurveyData);
   
   // Check if it's valid survey data
-  const surveyCheckResult = isSurveyData(potentialSurveyData);
-  console.log("[SurveyFinalView] isSurveyData check result:", surveyCheckResult);
-  const surveyData = surveyCheckResult ? potentialSurveyData : null;
+  const surveyData = isSurveyData(potentialSurveyData) ? potentialSurveyData : null;
   
   // Fallback content if survey data is invalid or missing
   const fallbackContent = values.survey_md || values.output || values.result || "Survey data is not available or invalid.";
@@ -40,14 +38,14 @@ export function SurveyFinalView<
     );
   }
 
-  // Render the survey
+  // Render the survey using Card layout
   return (
-    <div className="w-full p-6"> {/* Added padding */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">{surveyData.title}</h2>
-        {surveyData.description && (
-          <p className="text-gray-600">{surveyData.description}</p>
-        )}
+    <Card className="w-full max-w-4xl mx-auto my-6 border-none shadow-none"> {/* Adjusted styling */}
+      <CardHeader>
+        <div className="flex flex-col space-y-1.5">
+          <CardTitle className="text-2xl">{surveyData.title}</CardTitle>
+          {surveyData.description && <CardDescription>{surveyData.description}</CardDescription>}
+        </div>
         <div className="mt-4 space-y-2">
           <div>
             <span className="font-semibold">Subject:</span> {surveyData.subject}
@@ -56,15 +54,19 @@ export function SurveyFinalView<
             <span className="font-semibold">Objective:</span> {surveyData.objective}
           </div>
         </div>
-      </div>
-      <div className="space-y-8">
-        {surveyData.sections.map((section, index) => (
-          <div key={section.id || `section-${index}`}>
-            {index > 0 && <div className="my-8 h-px bg-gray-200"></div>}
-            <SectionRenderer section={section} />
-          </div>
-        ))}
-      </div>
-    </div>
+      </CardHeader>
+      {/* Use a simpler separator or remove if ThreadPanel provides one */}
+      {/* <Separator className="h-[2px] bg-gray-200 dark:bg-gray-800" /> */}
+      <CardContent className="pt-6">
+        <div>
+          {surveyData.sections.map((section, index) => (
+            <div key={section.id || `section-${index}`}>
+              {index > 0 && <Separator className="my-10 h-[1px] bg-gray-200 dark:bg-gray-800" />} {/* Adjusted Separator */}
+              <SectionRenderer section={section} />
+            </div>
+          ))}
+        </div>
+      </CardContent> {/* Added closing tag */}
+    </Card> // Added closing tag
   );
 }

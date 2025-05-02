@@ -1,5 +1,5 @@
 import React from "react";
-import { ViewConfig } from "./types/view";
+import { ViewConfig } from "./types/core"; // Updated import path
 import { ThreadActionsView } from "./components/thread-actions-view"; // Assuming this is the generic action view
 import { MarkdownFinalView } from "./views/MarkdownFinalView";
 import { SurveyFinalView } from "./views/SurveyFinalView";

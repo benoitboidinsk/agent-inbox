@@ -1,17 +1,18 @@
+import React from "react"; // Added React import
 import { Button } from "@/components/ui/button";
 import { Thread } from "@langchain/langgraph-sdk";
-import { ArrowLeft } from "lucide-react";
+// Removed ArrowLeft import
 import { HumanInterrupt, ThreadData } from "../types";
-import { constructOpenInStudioURL } from "../utils";
-import { ThreadIdCopyable } from "./thread-id";
+// Removed constructOpenInStudioURL import
+// Removed ThreadIdCopyable import
 import { InboxItemInput } from "./inbox-item-input";
 import useInterruptedActions from "../hooks/use-interrupted-actions";
-import { TooltipIconButton } from "@/components/ui/assistant-ui/tooltip-icon-button";
-import { VIEW_STATE_THREAD_QUERY_PARAM } from "../constants";
-import { useToast } from "@/hooks/use-toast";
+// Removed TooltipIconButton import
+// Removed VIEW_STATE_THREAD_QUERY_PARAM import
+// Removed useToast import
 import { cn } from "@/lib/utils";
-import { useQueryParams } from "../hooks/use-query-params";
-import { useThreadsContext } from "../contexts/ThreadContext";
+// Removed useQueryParams import
+// Removed useThreadsContext import
 
 interface ThreadActionsViewProps<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -25,55 +26,20 @@ interface ThreadActionsViewProps<
     React.SetStateAction<ThreadData<ThreadValues> | undefined>
   >;
   handleShowSidePanel: (panel: "state" | "description") => void;
-  panelView: "state" | "description";
-  panelExpanded: boolean;
+  // Props related to panel toggling are no longer needed here
+  // handleShowSidePanel: (panel: "state" | "description") => void;
+  // panelView: "state" | "description";
+  // panelExpanded: boolean;
 }
 
-function ButtonGroup({
-  handleTogglePanel,
-  panelView,
-  panelExpanded,
-}: {
-  handleTogglePanel: (panel: "state" | "description") => void;
-  panelView: "state" | "description";
-  panelExpanded: boolean;
-}) {
-  return (
-    <div className="flex flex-row gap-0 items-center justify-center">
-      <Button
-        variant="outline"
-        className={cn(
-          "rounded-l-md rounded-r-none border-r-[0px]",
-          panelView === "state" && panelExpanded ? "text-black" : "bg-white"
-        )}
-        size="sm"
-        onClick={() => handleTogglePanel("state")}
-      >
-        State
-      </Button>
-      <Button
-        variant="outline"
-        className={cn(
-          "rounded-l-none rounded-r-md border-l-[0px]",
-          panelView === "description" && panelExpanded ? "text-black" : "bg-white"
-        )}
-        size="sm"
-        onClick={() => handleTogglePanel("description")}
-      >
-        Description
-      </Button>
-    </div>
-  );
-}
+// Removed ButtonGroup component as it's moved to ThreadPanel
 
 export function ThreadActionsView<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >({
   threadData,
   setThreadData,
-  handleShowSidePanel,
-  panelView,
-  panelExpanded,
+  // Removed panel-related props
 }: ThreadActionsViewProps<ThreadValues>) {
   const {
     acceptAllowed,
@@ -97,77 +63,17 @@ export function ThreadActionsView<
     threadData,
     setThreadData,
   });
-  const { agentInboxes } = useThreadsContext<ThreadValues>();
-  const { toast } = useToast();
-  const { updateQueryParams } = useQueryParams();
-
-  const deploymentUrl = agentInboxes.find((i) => i.selected)?.deploymentUrl;
-
-  const handleOpenInStudio = () => {
-    if (!deploymentUrl) {
-      toast({
-        title: "Error",
-        description: "Please set the LangGraph deployment URL in settings.",
-        duration: 5000,
-      });
-      return;
-    }
-
-    const studioUrl = constructOpenInStudioURL(
-      deploymentUrl,
-      threadData.thread.thread_id
-    );
-    window.open(studioUrl, "_blank");
-  };
-
-  const threadTitle =
-    threadData.interrupts[0]?.action_request?.action || "Unknown";
+  // Removed context/hook calls related to header elements
   const actionsDisabled = loading || streaming;
   const ignoreAllowed = threadData.interrupts[0].config.allow_ignore;
 
   return (
-    <div className="flex flex-col min-h-full w-full p-12 gap-9">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between w-full gap-3">
-        <div className="flex items-center justify-start gap-3">
-          <TooltipIconButton
-            variant="ghost"
-            onClick={() => updateQueryParams(VIEW_STATE_THREAD_QUERY_PARAM)}
-            tooltip="Back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </TooltipIconButton>
-          <p className="text-2xl tracking-tighter text-pretty">{threadTitle}</p>
-          <ThreadIdCopyable threadId={threadData.thread.thread_id} />
-        </div>
-        <div className="flex flex-row gap-2 items-center justify-start">
-          {deploymentUrl && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex items-center gap-1 bg-white"
-              onClick={handleOpenInStudio}
-            >
-              Studio
-            </Button>
-          )}
-          <ButtonGroup
-            handleTogglePanel={(panel) => {
-              if (panelView === panel && panelExpanded) {
-                // If the panel is already expanded and showing the requested view, collapse it
-                handleShowSidePanel(panel === "state" ? "description" : "state");
-              } else {
-                // Otherwise, show the requested panel
-                handleShowSidePanel(panel);
-              }
-            }}
-            panelView={panelView}
-            panelExpanded={panelExpanded}
-          />
-        </div>
-      </div>
+    // Removed outer padding, assuming ThreadPanel or parent handles it
+    <div className="flex flex-col w-full p-6 gap-6"> {/* Adjusted padding/gap */}
+      {/* Header Removed */}
 
-      <div className="flex flex-row gap-2 items-center justify-start w-full">
+      {/* Resolve/Ignore Buttons */}
+      <div className="flex flex-row gap-2 items-center justify-start w-full"> {/* Kept this section */}
         <Button
           variant="outline"
           className="text-gray-800 border-gray-500 font-normal bg-white"

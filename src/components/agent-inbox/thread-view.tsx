@@ -22,8 +22,6 @@ export function ThreadView<
   // Get the graph ID from the selected agent inbox
   const graphId = agentInboxes.find(i => i.selected)?.graphId?.toLowerCase() || "default";
   const config = THREAD_VIEW_CONFIG[graphId] || THREAD_VIEW_CONFIG.default;
-  console.log("[ThreadView] graphId:", graphId);
-  console.log("[ThreadView] Selected Config:", config);
 
   React.useEffect(() => {
     try {
@@ -71,7 +69,6 @@ export function ThreadView<
   // Determine the component and state key based on status
   let ViewComponent: React.ComponentType<any>;
   let stateKey: string | undefined;
-  console.log("[ThreadView] isInterrupted:", isInterrupted, "isCompleted:", isCompleted);
 
   if (isInterrupted) {
     ViewComponent = config.actionViewComponent;
@@ -80,7 +77,6 @@ export function ThreadView<
   } else if (isCompleted) {
     ViewComponent = config.finalViewComponent;
     stateKey = config.finalStateKey;
-    console.log("[ThreadView] Using Final View Component:", ViewComponent.name, "with stateKey:", stateKey);
   } else {
     // If it's neither interrupted nor completed (e.g., busy), don't render a specific view yet
     // Or potentially render a loading/busy state? For now, return null.
